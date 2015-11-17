@@ -6,6 +6,8 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.view.View;
 import android.widget.Button;
@@ -84,6 +86,7 @@ public class CustomBluetoothActivity extends ActionBarActivity {
 				}
 			});
 			clientMode.setOnClickListener(new View.OnClickListener() {
+				@Override
 				public void onClick(View view) {
 					launchAction(START_CLIENT_ACTION);
 				}
@@ -138,9 +141,13 @@ public class CustomBluetoothActivity extends ActionBarActivity {
 		if (resultCode == RESULT_OK) {
 			switch (requestCode) {
 			case START_CLIENT_ACTION:
-				manager.startClientMode(manager.getBluetoothAdapter()
-						.getRemoteDevice(data.getStringExtra("device_addr")),
-						"Juan", "Capiz");
+				if(Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB)
+					manager.startClientModeZero(manager.getBluetoothAdapter()
+							.getRemoteDevice(data.getStringExtra("device_addr")), "Juan","Capiz");
+				else
+					manager.startClientMode(manager.getBluetoothAdapter()
+							.getRemoteDevice(data.getStringExtra("device_addr")),
+							"Juan", "Capiz");
 				break;
 			case BluetoothManager.REQUEST_ENABLE_BT:
 				manager.startServerMode();
@@ -152,6 +159,22 @@ public class CustomBluetoothActivity extends ActionBarActivity {
 			if (requestCode == BluetoothManager.REQUEST_ENABLE_BT) {
 				enableModes(true);
 			}
+		}
+	}
+	
+	private class ParallelWorker extends Thread{
+		
+		Handler mHandler;
+		
+		@Override
+		public void run(){
+			mHandler = new Handler(){
+				
+				@Override
+				public void handleMessage(Message msg){
+					
+				}
+			};
 		}
 	}
 }

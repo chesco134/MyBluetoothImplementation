@@ -1,5 +1,16 @@
 package org.capiz.bluetooth;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.Set;
+import java.util.UUID;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -14,16 +25,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Log;
 import android.widget.ArrayAdapter;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.util.Set;
-import java.util.UUID;
 
 /**
  * Created by jcapiz on 14/09/15.
@@ -127,6 +128,16 @@ public class BluetoothManager {
         activity.startActivity(discoverableIntent);
     }
 
+    public void startServerModeZero(){
+        sManager = new ServerManager();
+        sManager.execute();
+    }
+
+    public void startClientModeZero(BluetoothDevice device, String... args){
+        cManager = new ClientManager(device);
+        cManager.execute(args);
+    }
+
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public void startServerMode(){
         sManager = new ServerManager();
@@ -184,9 +195,30 @@ public class BluetoothManager {
                 while(true){
                     publishProgress("Esperando cliente...");
                     cliente = serverSocket.accept();
-                    try{ ((CustomBluetoothActivity)activity).makeServerAction(cliente); }
-                    catch ( ClassCastException e ) { e.printStackTrace(); }
-                    publishProgress("Cliente aceptado n.n");
+                    publishProgress("Cliente aceptado n.n\n");
+                    DataInputStream entrada = new DataInputStream(cliente.getInputStream());
+                    DataOutputStream salida = new DataOutputStream(cliente.getOutputStream());
+                    publishProgress("Flujos de entrada/salida generados\nEsperando a que la conexión termine...\n");
+                	publishProgress(entrada.readUTF());
+                	salida.writeUTF("Greeting from Server");
+                	cliente.close();
+//                    try{ ((CustomBluetoothActivity)activity).makeServerAction(cliente); }
+//                    catch ( ClassCastException e ) { e.printStackTrace(); }
+//                    publishProgress("Cliente aceptado n.n\nSending the chunk of data\n");
+//                    DataInputStream entrada = new DataInputStream(cliente.getInputStream());
+//                    publishProgress("Estamos echando raices aquí... jejé je");
+//                    DataOutputStream salida = new DataOutputStream(cliente.getOutputStream());
+//                    salida.write("Estamos echando raices aquí... jejé je".getBytes());
+//                    salida.flush();
+//                    publishProgress("We sent something\n");
+//                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//                    int length;
+//                    byte[] chunk = new byte[512];
+//                    while((length=entrada.read(chunk)) != -1)
+//                    	baos.write(chunk,0,length);
+//                    publishProgress(baos.toString());
+//                    baos.close();
+//                    cliente.close();
                 }
             }catch(IOException e){
                 e.printStackTrace();
@@ -235,13 +267,31 @@ public class BluetoothManager {
                 jsonObject.put("name",URLEncoder.encode(args[0],"utf8"));
                 jsonObject.put("lastName", URLEncoder.encode(args[1], "utf8"));
                 String message = jsonObject.toString();
+                publishProgress("Connecting...");
                 socket.connect();
                 DataOutputStream salida = new DataOutputStream(socket.getOutputStream());
-                salida.write(message.getBytes());
-                salida.flush();
-                logSomething(message);
                 DataInputStream entrada = new DataInputStream(socket.getInputStream());
-                result = entrada.readUTF();
+                salida.writeUTF("Greeting Server!");
+                salida.flush();
+                publishProgress(entrada.readUTF());
+                socket.close();
+//                publishProgress("Connected successfully...");
+//                DataOutputStream salida = new DataOutputStream(socket.getOutputStream());
+//                salida.flush();
+//                publishProgress("Flushed successfully...");
+//                DataInputStream entrada = new DataInputStream(socket.getInputStream());	
+//                int length;
+//                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//                byte[] chunk = new byte[512];
+//                publishProgress("Reading something");
+//                while((length=entrada.read(chunk))!=-1)
+//                	baos.write(chunk,0,length);
+//                publishProgress(baos.toString());
+//                baos.close();
+//                salida.write("Got it! Good bye!!\n".getBytes());
+//                salida.flush();
+//                socket.close();
+                result = "Success";
             }catch(JSONException | IOException e){
                 e.printStackTrace();
                 result = e.getMessage();
@@ -249,6 +299,11 @@ public class BluetoothManager {
                 stopActions();
             }
             return result;
+        }
+        
+        @Override
+        protected void onProgressUpdate(String... args){
+        	logSomething(args[0]);
         }
 
         @Override
